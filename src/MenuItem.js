@@ -1,65 +1,45 @@
 import React from 'react';
 
 import PropTypes from 'prop-types';
-
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableHighlight,
-  TouchableNativeFeedback,
-  View,
-} from 'react-native';
-
-const Touchable = Platform.select({
-  android: TouchableNativeFeedback,
-  default: TouchableHighlight,
-});
+import { StyleSheet, Text, TouchableHighlight, Platform } from 'react-native';
 
 function MenuItem({
   children,
   disabled,
   disabledTextColor,
-  ellipsizeMode,
   onPress,
   style,
   textStyle,
+  underlayColor,
   ...props
 }) {
-  const touchableProps =
-    Platform.OS === 'android'
-      ? { background: TouchableNativeFeedback.SelectableBackground() }
-      : {};
-
   return (
-    <Touchable
+    <TouchableHighlight
+      {...props}
       disabled={disabled}
       onPress={onPress}
-      {...touchableProps}
-      {...props}
+      style={[styles.container, style]}
+      underlayColor={underlayColor}
     >
-      <View style={[styles.container, style]}>
-        <Text
-          ellipsizeMode={ellipsizeMode}
-          numberOfLines={1}
-          style={[
-            styles.title,
-            disabled && { color: disabledTextColor },
-            textStyle,
-          ]}
-        >
-          {children}
-        </Text>
-      </View>
-    </Touchable>
+      <Text
+        ellipsizeMode={Platform.OS === 'ios' ? 'clip' : 'tail'}
+        // numberOfLines={4}
+        style={[
+          styles.title,
+          disabled && { color: disabledTextColor },
+          textStyle,
+        ]}
+      >
+        {children}
+      </Text>
+    </TouchableHighlight>
   );
 }
 
 MenuItem.propTypes = {
-  children: PropTypes.node.isRequired,
+  // children: PropTypes.string.isRequired,
   disabled: PropTypes.bool,
   disabledTextColor: PropTypes.string,
-  ellipsizeMode: PropTypes.string,
   onPress: PropTypes.func,
   style: TouchableHighlight.propTypes.style,
   textStyle: Text.propTypes.style,
@@ -68,23 +48,22 @@ MenuItem.propTypes = {
 
 MenuItem.defaultProps = {
   disabled: false,
-  disabledTextColor: '#bdbdbd',
-  ellipsizeMode: Platform.OS === 'ios' ? 'clip' : 'tail',
-  underlayColor: '#e0e0e0',
+  disabledTextColor: '#BDBDBD',
+  underlayColor: '#E0E0E0',
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 48,
+    minHeight: 40,
     justifyContent: 'center',
-    maxWidth: 248,
-    minWidth: 124,
+    maxWidth: 300,
+    minWidth: 154,
   },
   title: {
+    padding: 10,
     fontSize: 14,
     fontWeight: '400',
     paddingHorizontal: 16,
-    textAlign: 'left',
   },
 });
 

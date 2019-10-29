@@ -1,14 +1,14 @@
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 
 import PropTypes from 'prop-types';
-import { StyleSheet, View } from 'react-native';
 
 function MenuDivider({ color }) {
   return <View style={[styles.divider, { borderBottomColor: color }]} />;
 }
 
 MenuDivider.defaultProps = {
-  color: 'rgba(0,0,0,0.12)',
+  color: 'rgba(0,0,0,0.3)',
 };
 
 MenuDivider.propTypes = {
@@ -17,8 +17,9 @@ MenuDivider.propTypes = {
 
 const styles = StyleSheet.create({
   divider: {
-    flex: 1,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0.4,
+    marginLeft: 10,
+    marginRight: 10,
   },
 });
 

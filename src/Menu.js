@@ -1,19 +1,17 @@
 import React from 'react';
 
 import PropTypes from 'prop-types';
-
 import {
   Animated,
   Dimensions,
   Easing,
   Modal,
   Platform,
-  StatusBar,
   StyleSheet,
   TouchableWithoutFeedback,
   View,
   ViewPropTypes,
-  I18nManager,
+  Text
 } from 'react-native';
 
 const STATES = {
@@ -22,6 +20,7 @@ const STATES = {
   SHOWN: 'SHOWN',
 };
 
+const ANIMATION_DURATION = 300;
 const EASING = Easing.bezier(0.4, 0, 0.2, 1);
 const SCREEN_INDENT = 8;
 
@@ -66,12 +65,12 @@ class Menu extends React.Component {
         Animated.parallel([
           Animated.timing(this.state.menuSizeAnimation, {
             toValue: { x: width, y: height },
-            duration: this.props.animationDuration,
+            duration: ANIMATION_DURATION,
             easing: EASING,
           }),
           Animated.timing(this.state.opacityAnimation, {
             toValue: 1,
-            duration: this.props.animationDuration,
+            duration: ANIMATION_DURATION,
             easing: EASING,
           }),
         ]).start();
@@ -79,28 +78,24 @@ class Menu extends React.Component {
     );
   };
 
-  _onDismiss = () => {
-    if (this.props.onHidden) {
-      this.props.onHidden();
-    }
+  // Save button width and height for menu layout
+  _onButtonLayout = e => {
+    const { width, height } = e.nativeEvent.layout;
+    this.setState({ buttonWidth: width, buttonHeight: height });
   };
 
   show = () => {
-    this._container.measureInWindow((left, top, buttonWidth, buttonHeight) => {
-      this.setState({
-        buttonHeight,
-        buttonWidth,
-        left,
-        menuState: STATES.SHOWN,
-        top,
-      });
+    this._container.measureInWindow((x, y) => {
+      const top = Math.max(SCREEN_INDENT, y);
+      const left = Math.max(SCREEN_INDENT, x);
+      this.setState({ menuState: STATES.SHOWN, top, left });
     });
   };
 
-  hide = onHidden => {
+  hide = () => {
     Animated.timing(this.state.opacityAnimation, {
       toValue: 0,
-      duration: this.props.animationDuration,
+      duration: ANIMATION_DURATION,
       easing: EASING,
     }).start(() => {
       // Reset state
@@ -111,10 +106,6 @@ class Menu extends React.Component {
           opacityAnimation: new Animated.Value(0),
         },
         () => {
-          if (onHidden) {
-            onHidden();
-          }
-
           // Invoke onHidden callback if defined
           if (Platform.OS !== 'ios' && this.props.onHidden) {
             this.props.onHidden();
@@ -124,17 +115,14 @@ class Menu extends React.Component {
     });
   };
 
-  // @@ TODO: Rework this
-  _hide = () => {
-    this.hide();
+  _onDismiss = () => {
+    if (this.props.onHidden) {
+      this.props.onHidden();
+    }
   };
 
   render() {
-    const { isRTL } = I18nManager;
-
-    const dimensions = Dimensions.get('window');
-    const { width: windowWidth } = dimensions;
-    const windowHeight = dimensions.height - (StatusBar.currentHeight || 0);
+    const dimensions = Dimensions.get('screen');
 
     const {
       menuSizeAnimation,
@@ -153,39 +141,106 @@ class Menu extends React.Component {
     let { left, top } = this.state;
     const transforms = [];
 
-    if (
-      (isRTL && left + buttonWidth - menuWidth > SCREEN_INDENT) ||
-      (!isRTL && left + menuWidth > windowWidth - SCREEN_INDENT)
-    ) {
+    // Flip by X axis if menu hits right screen border
+    if (left > dimensions.width - menuWidth - SCREEN_INDENT) {
       transforms.push({
         translateX: Animated.multiply(menuSizeAnimation.x, -1),
       });
 
-      left = Math.min(windowWidth - SCREEN_INDENT, left + buttonWidth);
-    } else if (left < SCREEN_INDENT) {
-      left = SCREEN_INDENT;
+      left = Math.min(dimensions.width - SCREEN_INDENT, left + buttonWidth);
     }
 
     // Flip by Y axis if menu hits bottom screen border
-    if (top > windowHeight - menuHeight - SCREEN_INDENT) {
+    if (top > dimensions.height - menuHeight - SCREEN_INDENT) {
       transforms.push({
         translateY: Animated.multiply(menuSizeAnimation.y, -1),
       });
 
-      top = windowHeight - SCREEN_INDENT;
-      top = Math.min(windowHeight - SCREEN_INDENT, top + buttonHeight);
-    } else if (top < SCREEN_INDENT) {
-      top = SCREEN_INDENT;
+      top = Math.min(dimensions.height - SCREEN_INDENT, top + buttonHeight);
     }
 
     const shadowMenuContainerStyle = {
       opacity: opacityAnimation,
       transform: transforms,
+      left,
       top,
-
-      // Switch left to right for rtl devices
-      ...(isRTL ? { right: left } : { left }),
     };
+
+    const shadowMenuSettingStyle = {
+      opacity: opacityAnimation,
+      left,
+      top,
+    };
+
+    const triangleSettingStyle = {
+      ...Platform.select({
+        ios: {
+          width: 0,
+          height: 0,
+          backgroundColor: 'transparent',
+          borderStyle: 'solid',
+          borderLeftWidth: 5,
+          borderRightWidth: 5,
+          borderBottomWidth: 20,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderBottomColor: '#ffffff',
+          marginLeft: -20,
+          marginTop: 22,
+        },
+        android: {
+          width: 0,
+          height: 0,
+          backgroundColor: 'transparent',
+          borderStyle: 'solid',
+          borderLeftWidth: 7,
+          borderRightWidth: 7,
+          borderBottomWidth: 10,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderBottomColor: '#ffffff',
+          marginLeft: -22,
+          marginTop: 33,
+        },
+      }),
+    };
+
+    const triangleNoticeStyle = {
+      ...Platform.select({
+        ios: {
+          width: 0,
+          height: 0,
+          backgroundColor: 'transparent',
+          borderStyle: 'solid',
+          borderLeftWidth: 5,
+          borderRightWidth: 5,
+          borderBottomWidth: 20,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderBottomColor: '#ffffff',
+          marginLeft: 5,
+          marginTop: 22,
+        },
+        android: {
+          width: 0,
+          height: 0,
+          backgroundColor: 'transparent',
+          borderStyle: 'solid',
+          borderLeftWidth: 7,
+          borderRightWidth: 7,
+          borderBottomWidth: 10,
+          borderLeftColor: 'transparent',
+          borderRightColor: 'transparent',
+          borderBottomColor: '#ffffff',
+          marginLeft: 3,
+          marginTop: 33,
+        },
+      }),
+    };
+
+    const leftPaddingStyle = {
+      margin: 20
+    }
 
     const { menuState } = this.state;
     const animationStarted = menuState === STATES.ANIMATING;
@@ -195,11 +250,10 @@ class Menu extends React.Component {
 
     return (
       <View ref={this._setContainerRef} collapsable={false} testID={testID}>
-        <View>{button}</View>
-
+        <View onLayout={this._onButtonLayout}>{button}</View>
         <Modal
           visible={modalVisible}
-          onRequestClose={this._hide}
+          onRequestClose={this.hide}
           supportedOrientations={[
             'portrait',
             'portrait-upside-down',
@@ -210,14 +264,17 @@ class Menu extends React.Component {
           transparent
           onDismiss={this._onDismiss}
         >
-          <TouchableWithoutFeedback onPress={this._hide} accessible={false}>
+          <TouchableWithoutFeedback onPress={this.hide}>
+          { this.props.type === "setting"?
             <View style={StyleSheet.absoluteFill}>
+                <Animated.View style={[
+                    triangleSettingStyle, style, shadowMenuSettingStyle ]}>
+                </Animated.View >
               <Animated.View
                 onLayout={this._onMenuLayout}
                 style={[
                   styles.shadowMenuContainer,
                   shadowMenuContainerStyle,
-                  style,
                 ]}
               >
                 <Animated.View
@@ -227,6 +284,27 @@ class Menu extends React.Component {
                 </Animated.View>
               </Animated.View>
             </View>
+            : 
+            <View style={StyleSheet.absoluteFill}>
+                <Animated.View style={[
+                    triangleNoticeStyle, style, shadowMenuContainerStyle ]}>
+                </Animated.View >
+              <Animated.View
+                onLayout={this._onMenuLayout}
+                style={[
+                  styles.shadowMenuContainerNotice,
+                  shadowMenuContainerStyle,
+                  leftPaddingStyle
+                ]}
+              >
+                <Animated.View
+                  style={[styles.menuContainer, animationStarted && menuSize]}
+                >
+                  {children}
+                </Animated.View>
+              </Animated.View>
+            </View>
+          }
           </TouchableWithoutFeedback>
         </Modal>
       </View>
@@ -235,7 +313,6 @@ class Menu extends React.Component {
 }
 
 Menu.propTypes = {
-  animationDuration: PropTypes.number,
   button: PropTypes.node.isRequired,
   children: PropTypes.node.isRequired,
   onHidden: PropTypes.func,
@@ -243,26 +320,55 @@ Menu.propTypes = {
   testID: ViewPropTypes.testID,
 };
 
-Menu.defaultProps = {
-  animationDuration: 300,
-};
-
 const styles = StyleSheet.create({
   shadowMenuContainer: {
-    position: 'absolute',
-    backgroundColor: 'white',
-    borderRadius: 4,
-    opacity: 0,
-
     // Shadow
     ...Platform.select({
       ios: {
+        marginTop: 40,
+        marginLeft: -5,
+        position: 'absolute',
+        backgroundColor: 'white',
+        borderRadius: 4,
+        opacity: 0,
         shadowColor: 'black',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.14,
         shadowRadius: 2,
       },
       android: {
+        marginTop: 40,
+        marginLeft: -5,
+        position: 'absolute',
+        backgroundColor: 'white',
+        borderRadius: 4,
+        opacity: 0,
+        elevation: 8,
+      },
+    }),
+  },
+  shadowMenuContainerNotice: {
+    // Shadow
+    ...Platform.select({
+      ios: {
+        marginTop: 40,
+        marginLeft: 1,
+        position: 'absolute',
+        backgroundColor: 'white',
+        borderRadius: 4,
+        opacity: 0,
+        shadowColor: 'black',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.14,
+        shadowRadius: 2,
+      },
+      android: {
+        marginTop: 40,
+        marginLeft: 1,
+        position: 'absolute',
+        backgroundColor: 'white',
+        borderRadius: 4,
+        opacity: 0,
         elevation: 8,
       },
     }),
